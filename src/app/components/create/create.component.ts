@@ -1,60 +1,69 @@
 import { Component, OnInit } from '@angular/core';
 import { Project } from '../../models/project';
-import { ProjectService } from '../../services/project.services';
-import { UploadServices } from '../../services/upload.services';
+import { ProjectService } from '../../services/project.service';
+import { UploadService } from '../../services/upload.service';
 import { Global } from '../../services/global';
+
 @Component({
   selector: 'app-create',
   templateUrl: './create.component.html',
   styleUrls: ['./create.component.css'],
-  providers:[ProjectService, UploadServices] 
+  providers: [ProjectService, UploadService]
 })
 export class CreateComponent implements OnInit {
 
-  public title: string;
-  public project: Project;
-  public save_project;
-  public status:any;
-  public filesToUpload: Array <File>;
+	public title: string;
+	public project: Project;
+	public save_project;
+	public status: string;
+	public filesToUpload: Array<File>;
 
-  constructor(
-    private _projectServices: ProjectService,
-    private _uploadServices: UploadServices 
-  ){ 
-    this.title= "Crear Proyecto"
-    this.project= new Project('', '', '', '', 2019, '','');
-  }
+	constructor(
+		private _projectService: ProjectService,
+		private _uploadService: UploadService
+	){
+		this.title = "Crear proyecto";
+		this.project = new Project('','','','',2019,'','');
+	}
 
-  ngOnInit() {
-  }
-  onSubmit(form){
-    console.log(this.project);
-    this._projectServices.save(this.project).subscribe(
-      response =>{
-          if(response.project){
-            
-            this._uploadServices.makeFileRequest(Global.url+"upload image/"+response.project._id, [], this.filesToUpload, 'image').then((result: any)=>{
-              this.save_project= result.project;
+	ngOnInit() {
+	}
 
-              this.status= 'saccess';
-              form.reset();
-              console.log(result)
-            });
-            
-          }else{
-            this.status= 'failed';
-          }
-      },
-      error =>{
-        console.log(<any>error);
-      }
-    );
+	onSubmit(form){
+		
+		// Guardar datos básicos
+		this._projectService.saveProject(this.project).subscribe(
+			response => {
+				if(response.project){
+					
+					// Subir la imagen
+					if(this.filesToUpload){
+						this._uploadService.makeFileRequest(Global.url+"upload-image/"+response.project._id, [], this.filesToUpload, 'image')
+						.then((result:any) => {
 
+							this.save_project = result.project;
 
-    
-  }
-  filrChangeEvent(fileInput: any){
-    this.filesToUpload= <Array<File>>fileInput.target.files;
-    }
+							this.status = 'success';
+							form.reset();
+						});
+					}else{
+						this.save_project = response.project;
+						this.status = 'success';
+						form.reset();
+					}
+					
+				}else{
+					this.status = 'failed';
+				}
+			},
+			error => {
+				console.log(<any>error);
+			}
+		);
+	}
+
+	fileChangeEvent(fileInput: any){
+		this.filesToUpload = <Array<File>>fileInput.target.files;
+	}
 
 }
